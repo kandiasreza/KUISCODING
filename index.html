@@ -214,6 +214,71 @@
   }
   .review-item.correct{border-left-color:var(--correct);}
   .review-item.wrong{border-left-color:var(--wrong);}
+  .identity-card{
+    text-align:center;
+  }
+  .identity-card h2{
+    margin-top:0;
+    font-size:1.3rem;
+  }
+  .identity-card p{
+    color:var(--muted);
+    margin-bottom:22px;
+  }
+  .field-group{
+    text-align:left;
+    margin-bottom:16px;
+  }
+  .field-group label{
+    display:block;
+    font-size:0.88rem;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--text);
+  }
+  .field-group input{
+    width:100%;
+    padding:12px 14px;
+    border:2px solid #e5e7eb;
+    border-radius:10px;
+    font-size:1rem;
+    font-family:inherit;
+  }
+  .field-group input:focus{
+    outline:none;
+    border-color:var(--accent2);
+  }
+  .field-error{
+    color:var(--wrong);
+    font-size:0.82rem;
+    margin-top:6px;
+    display:none;
+  }
+  .start-btn{
+    margin-top:10px;
+    padding:13px 30px;
+    border:none;
+    border-radius:10px;
+    background:var(--accent);
+    color:#fff;
+    font-weight:600;
+    font-size:1rem;
+    cursor:pointer;
+    width:100%;
+  }
+  .start-btn:hover{
+    background:#6d28d9;
+  }
+  .result-identity{
+    display:inline-block;
+    background:#f3e8ff;
+    color:#6d28d9;
+    padding:8px 18px;
+    border-radius:20px;
+    font-weight:600;
+    font-size:0.9rem;
+    margin-bottom:6px;
+  }
 </style>
 </head>
 <body>
@@ -225,7 +290,23 @@
 
   <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
 
-  <div class="card" id="quizCard">
+  <div class="card identity-card" id="identityCard">
+    <h2>👋 Sebelum Mulai</h2>
+    <p>Isi data diri kamu terlebih dahulu ya!</p>
+    <div class="field-group">
+      <label for="nameInput">Nama</label>
+      <input type="text" id="nameInput" placeholder="Masukkan nama lengkap">
+      <div class="field-error" id="nameError">Nama wajib diisi.</div>
+    </div>
+    <div class="field-group">
+      <label for="classInput">Kelas</label>
+      <input type="text" id="classInput" placeholder="Masukkan kelas">
+      <div class="field-error" id="classError">Kelas wajib diisi.</div>
+    </div>
+    <button class="start-btn" id="startBtn">Mulai Kuis 🚀</button>
+  </div>
+
+  <div class="card" id="quizCard" style="display:none;">
     <div class="qnum" id="qNum">Soal 1 / 35</div>
     <div class="question" id="qText"></div>
     <div class="options" id="options"></div>
@@ -237,6 +318,7 @@
   </div>
 
   <div class="card result" id="resultCard" style="display:none;">
+    <div class="result-identity" id="resultIdentity"></div>
     <h2>Hasil Kuis Kamu 🎉</h2>
     <div class="score-circle" id="scoreCircle"><span id="scoreText">0%</span></div>
     <p id="scoreDesc"></p>
@@ -287,6 +369,8 @@ const questions = [
 
 let current = 0;
 let answers = new Array(questions.length).fill(null);
+let studentName = '';
+let studentClass = '';
 
 const qNum = document.getElementById('qNum');
 const qText = document.getElementById('qText');
@@ -297,6 +381,63 @@ const nextBtn = document.getElementById('nextBtn');
 const progressBar = document.getElementById('progressBar');
 const quizCard = document.getElementById('quizCard');
 const resultCard = document.getElementById('resultCard');
+const identityCard = document.getElementById('identityCard');
+const nameInput = document.getElementById('nameInput');
+const classInput = document.getElementById('classInput');
+const nameError = document.getElementById('nameError');
+const classError = document.getElementById('classError');
+const startBtn = document.getElementById('startBtn');
+
+// Mengacak urutan array (Fisher-Yates shuffle)
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Mengacak posisi opsi jawaban tiap soal, lalu menyesuaikan index jawaban benar
+function shuffleQuestionOptions(){
+  questions.forEach(item => {
+    const correctText = item.o[item.a];
+    const order = shuffleArray(item.o.map((_, idx) => idx));
+    item.o = order.map(idx => item.o[idx]);
+    item.a = item.o.indexOf(correctText);
+  });
+}
+
+startBtn.addEventListener('click', () => {
+  const nameVal = nameInput.value.trim();
+  const classVal = classInput.value.trim();
+  let valid = true;
+
+  if(!nameVal){
+    nameError.style.display = 'block';
+    valid = false;
+  } else {
+    nameError.style.display = 'none';
+  }
+
+  if(!classVal){
+    classError.style.display = 'block';
+    valid = false;
+  } else {
+    classError.style.display = 'none';
+  }
+
+  if(!valid) return;
+
+  studentName = nameVal;
+  studentClass = classVal;
+
+  shuffleQuestionOptions();
+
+  identityCard.style.display = 'none';
+  quizCard.style.display = 'block';
+  renderQuestion();
+});
 
 function renderQuestion(){
   const item = questions[current];
@@ -360,6 +501,7 @@ function showResult(){
 
   document.getElementById('scoreCircle').style.setProperty('--pct', pct);
   document.getElementById('scoreText').textContent = pct + '%';
+  document.getElementById('resultIdentity').textContent = `${studentName} • Kelas ${studentClass}`;
 
   let desc = '';
   if(pct >= 90) desc = `Luar biasa! Kamu benar ${correctCount} dari ${questions.length} soal. Pemahamanmu tentang HTML, CSS & JS sangat mantap! 🚀`;
@@ -385,12 +527,13 @@ function showResult(){
 document.getElementById('restartBtn').addEventListener('click', () => {
   current = 0;
   answers = new Array(questions.length).fill(null);
-  quizCard.style.display = 'block';
+  nameInput.value = '';
+  classInput.value = '';
   resultCard.style.display = 'none';
-  renderQuestion();
+  quizCard.style.display = 'none';
+  identityCard.style.display = 'block';
+  progressBar.style.width = '0%';
 });
-
-renderQuestion();
 </script>
 </body>
 </html>
